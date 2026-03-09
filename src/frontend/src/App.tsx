@@ -2,6 +2,7 @@ import { Toaster } from "@/components/ui/sonner";
 import {
   Outlet,
   RouterProvider,
+  createHashHistory,
   createRootRoute,
   createRoute,
   createRouter,
@@ -49,7 +50,8 @@ const shareRoute = createRoute({
 
 const routeTree = rootRoute.addChildren([uploadRoute, shareRoute]);
 
-const router = createRouter({ routeTree });
+const hashHistory = createHashHistory();
+const router = createRouter({ routeTree, history: hashHistory });
 
 declare module "@tanstack/react-router" {
   interface Register {
