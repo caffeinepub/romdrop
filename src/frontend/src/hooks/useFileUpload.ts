@@ -17,11 +17,15 @@ export function useFileUpload() {
     ): Promise<string> => {
       const config = await loadConfig();
 
-      const agent = new HttpAgent({
+      const isLocal = config.backend_host?.includes("localhost");
+
+      const agent = HttpAgent.createSync({
         host: config.backend_host,
+        shouldFetchRootKey: isLocal,
+        verifyQuerySignatures: false,
       });
 
-      if (config.backend_host?.includes("localhost")) {
+      if (isLocal) {
         await agent.fetchRootKey().catch(() => {});
       }
 
