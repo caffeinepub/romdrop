@@ -1,0 +1,167 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─── Geist Mono ─────────────────────────────────────────────── */
+@font-face {
+  font-family: "Geist Mono";
+  src: url("/assets/fonts/GeistMono-Variable.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ─── Outfit ──────────────────────────────────────────────────── */
+@font-face {
+  font-family: "Outfit";
+  src: url("/assets/fonts/Outfit-Variable.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@layer base {
+  :root {
+    --radius: 0.25rem;
+
+    /* DeFi dark palette — OKLCH raw L C H */
+    --background:     0.08 0.01 240;
+    --foreground:     0.92 0.02 200;
+
+    --card:           0.10 0.015 240;
+    --card-foreground: 0.92 0.02 200;
+
+    --popover:        0.12 0.015 240;
+    --popover-foreground: 0.92 0.02 200;
+
+    /* Neon cyan-green accent */
+    --primary:        0.78 0.22 165;
+    --primary-foreground: 0.06 0.01 240;
+
+    --secondary:      0.15 0.02 240;
+    --secondary-foreground: 0.82 0.02 200;
+
+    --muted:          0.13 0.015 240;
+    --muted-foreground: 0.50 0.03 200;
+
+    --accent:         0.22 0.04 240;
+    --accent-foreground: 0.92 0.02 200;
+
+    --destructive:    0.65 0.22 25;
+    --destructive-foreground: 0.98 0 0;
+
+    --border:         0.22 0.04 220;
+    --input:          0.15 0.03 230;
+    --ring:           0.78 0.22 165;
+
+    /* Chart tokens */
+    --chart-1: 0.78 0.22 165;
+    --chart-2: 0.72 0.18 140;
+    --chart-3: 0.65 0.20 270;
+    --chart-4: 0.70 0.18 200;
+    --chart-5: 0.75 0.20 90;
+
+    /* Sidebar */
+    --sidebar: 0.09 0.012 240;
+    --sidebar-foreground: 0.92 0.02 200;
+    --sidebar-primary: 0.78 0.22 165;
+    --sidebar-primary-foreground: 0.06 0.01 240;
+    --sidebar-accent: 0.15 0.02 240;
+    --sidebar-accent-foreground: 0.82 0.02 200;
+    --sidebar-border: 0.22 0.04 220;
+    --sidebar-ring: 0.78 0.22 165;
+
+    /* Custom DeFi tokens */
+    --neon:     0.78 0.22 165;
+    --neon-dim: 0.55 0.18 165;
+    --neon-glow: oklch(0.78 0.22 165 / 0.35);
+    --violet:   0.62 0.22 285;
+    --violet-dim: 0.50 0.18 285;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  html {
+    color-scheme: dark;
+  }
+
+  body {
+    @apply bg-background text-foreground font-body;
+    /* Subtle grid texture */
+    background-image:
+      linear-gradient(oklch(0.78 0.22 165 / 0.03) 1px, transparent 1px),
+      linear-gradient(90deg, oklch(0.78 0.22 165 / 0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    min-height: 100vh;
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: oklch(var(--background)); }
+  ::-webkit-scrollbar-thumb { background: oklch(var(--border)); border-radius: 2px; }
+  ::-webkit-scrollbar-thumb:hover { background: oklch(var(--neon-dim)); }
+}
+
+@layer utilities {
+  /* Neon glow helpers */
+  .neon-glow {
+    box-shadow:
+      0 0 8px oklch(0.78 0.22 165 / 0.4),
+      0 0 20px oklch(0.78 0.22 165 / 0.15);
+  }
+  .neon-glow-sm {
+    box-shadow:
+      0 0 4px oklch(0.78 0.22 165 / 0.35),
+      0 0 12px oklch(0.78 0.22 165 / 0.12);
+  }
+  .neon-text {
+    color: oklch(var(--neon));
+    text-shadow: 0 0 10px oklch(0.78 0.22 165 / 0.6);
+  }
+  .neon-border {
+    border-color: oklch(var(--neon));
+    box-shadow: 0 0 6px oklch(0.78 0.22 165 / 0.3), inset 0 0 6px oklch(0.78 0.22 165 / 0.05);
+  }
+  .neon-border-pulse {
+    border-color: oklch(var(--neon));
+    animation: pulseBorder 1.5s ease-in-out infinite;
+  }
+  .violet-border {
+    border-color: oklch(var(--violet));
+    box-shadow: 0 0 6px oklch(0.62 0.22 285 / 0.3), inset 0 0 6px oklch(0.62 0.22 285 / 0.05);
+  }
+  .scanline {
+    position: relative;
+    overflow: hidden;
+  }
+  .scanline::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      oklch(0.08 0.01 240 / 0.12) 2px,
+      oklch(0.08 0.01 240 / 0.12) 4px
+    );
+    pointer-events: none;
+    z-index: 0;
+  }
+  .font-mono-data {
+    font-family: "Geist Mono", monospace;
+    font-feature-settings: "tnum" 1;
+  }
+}
+
+@keyframes pulseBorder {
+  0%, 100% { box-shadow: 0 0 6px oklch(0.78 0.22 165 / 0.3), inset 0 0 6px oklch(0.78 0.22 165 / 0.05); }
+  50%       { box-shadow: 0 0 18px oklch(0.78 0.22 165 / 0.7), inset 0 0 12px oklch(0.78 0.22 165 / 0.12); }
+}
+
+@keyframes scanlineMove {
+  from { transform: translateY(-100%); }
+  to   { transform: translateY(100vh); }
+}
