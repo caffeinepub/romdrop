@@ -1,4 +1,9 @@
-import { type HttpAgent, isV3ResponseBody } from "@icp-sdk/core/agent";
+import { Principal } from "@dfinity/principal";
+import {
+  type HttpAgent,
+  isV3ResponseBody,
+  pollForResponse,
+} from "@icp-sdk/core/agent";
 import { IDL } from "@icp-sdk/core/candid";
 
 type Headers = Record<string, string>;
@@ -468,50 +473,6 @@ class StorageGatewayClient {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Poll IC readState for the certificate after a 202/no-inline-cert response
-// ---------------------------------------------------------------------------
-async function pollReadStateForCertificate(
-  agent: HttpAgent,
-  canisterId: string,
-  requestId: Uint8Array,
-  maxAttempts = 40,
-  delayMs = 1500,
-): Promise<Uint8Array> {
-  const requestStatusLabel = new TextEncoder().encode("request_status");
-  const path = [requestStatusLabel, requestId];
-
-  for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    if (attempt > 0) {
-      await new Promise((resolve) => setTimeout(resolve, delayMs));
-    }
-    try {
-      console.log(
-        `[StorageClient] readState poll ${attempt + 1}/${maxAttempts}`,
-      );
-      const stateResponse = await (agent as any).readState(canisterId, {
-        paths: [path],
-      });
-      const cert = stateResponse?.certificate;
-      if (cert && (cert.byteLength ?? cert.length) > 0) {
-        console.log(
-          `[StorageClient] certificate received on attempt ${attempt + 1}`,
-        );
-        return cert instanceof Uint8Array ? cert : new Uint8Array(cert);
-      }
-    } catch (err) {
-      console.warn(
-        `[StorageClient] readState attempt ${attempt + 1} failed:`,
-        err,
-      );
-    }
-  }
-
-  throw new Error(
-    `[StorageClient] Timed out waiting for IC certificate after ${maxAttempts} polls`,
-  );
-}
-
 export class StorageClient {
   private readonly storageGatewayClient: StorageGatewayClient;
 
@@ -525,42 +486,43 @@ export class StorageClient {
     this.storageGatewayClient = new StorageGatewayClient(storageGatewayUrl);
   }
 
+  /**
+   * Calls _caffeineStorageCreateCertificate on the canister and returns the raw
+   * IC state-tree certificate bytes (CBOR) that the gateway uses to verify the
+   * upload is authorised by the canister owner.
+   *
+   * IC mainnet boundary nodes often return HTTP 202 instead of an inline v3
+   * certificate.  When that happens we fall through to polling readState via the
+   * SDK's pollForResponse utility (5-minute timeout, exponential back-off) and
+   * then fetch the raw cert bytes with one final readState call.
+   */
   private async getCertificate(hash: string): Promise<Uint8Array> {
     const args = IDL.encode([IDL.Text], [hash]);
-
     const result = await this.agent.call(this.backendCanisterId, {
       methodName: "_caffeineStorageCreateCertificate",
       arg: args,
     });
 
-    const body = result?.response?.body;
-    console.log("[StorageClient] canister call response body:", body);
-
-    // Case 1: v3 inline certificate
+    // Fast path: boundary node returned the IC state cert inline (v3 protocol).
+    const body = result.response.body;
     if (isV3ResponseBody(body)) {
-      console.log("[StorageClient] got inline certificate");
-      return body.certificate instanceof Uint8Array
-        ? body.certificate
-        : new Uint8Array(body.certificate);
+      return body.certificate;
     }
 
-    // Case 2: 202 accepted or no inline cert — poll readState
-    const requestId = (result as any)?.requestId as Uint8Array | undefined;
-    if (!requestId || (requestId.byteLength ?? requestId.length) === 0) {
-      throw new Error(
-        "[StorageClient] No requestId returned from canister call; cannot poll for certificate",
-      );
-    }
+    // Slow path: IC returned 202.  Poll until the request reaches "replied"
+    // status, then fetch the raw CBOR cert bytes via a final readState call.
+    const canisterId = Principal.fromText(this.backendCanisterId);
+    await pollForResponse(this.agent, canisterId, result.requestId);
 
-    console.log(
-      "[StorageClient] polling readState for certificate, requestId byteLength:",
-      requestId.byteLength ?? requestId.length,
-    );
-    return pollReadStateForCertificate(
-      this.agent,
-      this.backendCanisterId,
-      requestId,
-    );
+    const requestStatusPath = [
+      new TextEncoder().encode("request_status"),
+      result.requestId,
+    ];
+    const stateResult = await this.agent.readState(this.backendCanisterId, {
+      paths: [requestStatusPath],
+    });
+
+    return stateResult.certificate;
   }
 
   public async putFile(

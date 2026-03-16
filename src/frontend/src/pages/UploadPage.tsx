@@ -51,7 +51,9 @@ export default function UploadPage() {
   const [copied, setCopied] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const shareUrl = shareId ? `${window.location.origin}/share/${shareId}` : "";
+  const shareUrl = shareId
+    ? `${window.location.origin}/#/share/${shareId}`
+    : "";
 
   const handleFilePick = useCallback((file: File) => {
     if (!isValidExt(file.name)) {
@@ -345,6 +347,7 @@ export default function UploadPage() {
               <AnimatePresence>
                 {uploadState === "error" && errorMsg && (
                   <motion.div
+                    data-ocid="upload.error_state"
                     initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0 }}
